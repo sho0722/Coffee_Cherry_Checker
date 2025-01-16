@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Coffee Cherry Checker</title>
+
+	<link rel="stylesheet" href="./assets/css/ress.css">
+	<link rel="stylesheet" href="./assets/css/style.css">
+</head>
+
+<body>
+	<header>
+		<h1 class="ttl_head">Coffee Cherry Checker</h1>
+	</header>
+	
+	<main class="main">
+		<div class="button_area">
+			<input type="file" accept=”image/*” id="inputImage">
+			<div role="button" id="icon_camera" class="default">
+				<img src="./assets/images/icon_camera.svg" alt="">
+			</div>
+			<button id="startButton" disabled>Start</button>
+		</div>
+    
+		<div id="canvas_area">
+			<h2 class="ttl_cont">Your Photo</h2>
+			<div class="canvas_wrap">
+				<canvas id="canvasAdjusted"></canvas>
+			</div>
+		</div>
+	</main>
+
+	<div id="loading_page">
+		<div class="spinner"></div>
+		<p class="loading-text">Loading...</p>
+	</div>
+
+	<script src="https://cdn.jsdelivr.net/npm/heic2any/dist/heic2any.min.js"></script>
+	<script src="/assets/js/opencv.js" type="text/javascript"></script>
+	<script src="/assets/js/main.js" type="text/javascript"></script>
+</body>
+</html>

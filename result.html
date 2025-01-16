@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Coffee Cherry Checker</title>
+
+	<link rel="stylesheet" href="./assets/css/ress.css">
+	<link href="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/css/splide.min.css" rel="stylesheet">
+	<link rel="stylesheet" href="./assets/css/style.css">
+</head>
+
+<body>
+	<header>
+		<h1 class="ttl_head">Coffee Cherry Checker</h1>
+	</header>
+	
+	<main class="main">
+		<h2 class="ttl_cont">Result</h2>
+
+		<section class="splide">
+			<div class="splide__track">
+				<ul class="splide__list">
+					<li class="splide__slide">
+						<div class="chart_wrap">
+							<canvas id="piechart"></canvas>
+						</div>
+						<table id="pixelRatioTable" class="result_table">
+							<thead>
+								<tr>
+									<th>Overripe</th>
+									<th>Unripe</th>
+									<th>Rripe</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td id="overripeRatio">-</td>
+									<td id="unripeRatio">-</td>
+									<td id="ripeRatio">-</td>
+								</tr>
+							</tbody>
+						</table>
+					</li>
+
+					<li class="splide__slide">
+						<p class="ttl_ripeness ttl_ripe">Ripe</p>
+						<div class="canvas_wrap">
+							<canvas id="canvasRipe"></canvas>
+						</div>
+					</li>
+
+					<li class="splide__slide">
+						<p class="ttl_ripeness ttl_unripe">Unripe</p>
+						<div class="canvas_wrap">
+							<canvas id="canvasUnripe"></canvas>
+						</div>
+					</li>
+					
+					<li class="splide__slide">
+						<p class="ttl_ripeness ttl_overripe">Overripe</p>
+						<div class="canvas_wrap">
+							<canvas id="canvasOverripe"></canvas>
+						</div>
+					</li>
+				</ul>
+			</div>
+		</section>
+
+		<button class="btn_top" onclick="location.href='/top.html'">TOP</button>
+	</main>
+
+	<script src="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/js/splide.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+	<script src="/assets/js/result.js" type="text/javascript"></script>
+</body>
+</html>
