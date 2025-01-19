@@ -4,19 +4,39 @@ function onReady() {
   const cameraButton = document.getElementById('icon_camera');
   const startButton = document.getElementById('startButton');
   const canvasArea = document.getElementById('canvas_area');
+  const resultArea = document.getElementById('result_area');
   let src = null;
+  let myChart = null;
 
-  // カメラアイコンが押された時の処理
-  cameraButton.addEventListener('click', () => {
-    cameraButton.classList.remove('default');
-    // inputタグにアクセス
-    inputImage.click();
-  });
+  cameraButton.addEventListener('click', handleCameraButtonClick);
+  inputImage.addEventListener('change', handleImageChange);
+  startButton.addEventListener('click', handleStartButtonClick);
 
-  // インプットタグの処理
-  inputImage.addEventListener('change', (event) => {
+  // カメラアイコンをクリックした時の処理
+  function handleCameraButtonClick() {
+    if (cameraButton.classList.contains('default')) {
+      cameraButton.classList.remove('default');
+    }
+    resultArea.style.display = "none"; // 既存の結果をクリア
+    clearAllCanvas();
+    destroyPreviousChart();
+    inputImage.click();  // inputタグに連携
+  }
+
+  function clearAllCanvas() {
+    ['canvasAdjusted', 'canvasRipe', 'canvasUnripe', 'canvasOverripe'].forEach(clearCanvas);
+  }
+
+  function destroyPreviousChart() {
+    if (myChart) {
+      myChart.destroy();
+      myChart = null;
+    }
+  }
+
+  function handleImageChange(event) {
     startButton.disabled = true;
-    canvasArea.style.opacity = "1";
+    canvasArea.style.display = "block";
 
     const file = event.target.files[0];
     if (!file) {
@@ -24,266 +44,184 @@ function onReady() {
       return;
     }
 
-    const processImage = (img) => {
-      const tempCanvas = document.createElement('canvas');
-      const ctx = tempCanvas.getContext('2d');
-      tempCanvas.width = img.width;
-      tempCanvas.height = img.height;
-      ctx.drawImage(img, 0, 0);
-      src = cv.imread(tempCanvas);
-      // オリジナル画像を描画
-      // cv.imshow('canvasOriginal', src);
+    const img = new Image();
+    img.onload = () => processImage(img);
 
-      // 画像をCIELab形式に変換して保持
-      window.imgLab = new cv.Mat();
-      cv.cvtColor(src, window.imgLab, cv.COLOR_BGR2Lab);
-
-      // 明るさマスクを計算して保持
-      window.lightnessMask = applyLightnessMask(window.imgLab);
-
-      // 明るさマスクを適用した画像を描画
-      drawMaskedImage('canvasAdjusted', window.lightnessMask, src);
-
-      startButton.disabled = false;
-    };
-
-    // データがheic形式のときの処理
     if (file.type === 'image/heic' || file.name.endsWith('.heic')) {
-      console.log('Converting HEIC to PNG...');
-      heic2any({
-        blob: file,
-        toType: 'image/png',
-      })
-        .then((convertedBlob) => {
-          const img = new Image();
-          img.onload = () => processImage(img);
-          img.src = URL.createObjectURL(convertedBlob);
-        })
-        .catch((error) => {
-          console.error('Failed to convert HEIC:', error);
-          alert('Failed to process HEIC file. Please try a different file format.');
-        });
+      convertHeicToPng(file, img);
     } else {
-      const img = new Image();
-      img.onload = () => processImage(img);
       img.src = URL.createObjectURL(file);
     }
-  });
+  }
 
-  // IndexedDBの初期化
-  const dbRequest = indexedDB.open('imageDatabase', 1);
-  let db;
+  // heic形式の画像の時の変換処理
+  function convertHeicToPng(file, img) {
+    console.log('Converting HEIC to PNG...');
+    heic2any({ blob: file, toType: 'image/png' })
+      .then((convertedBlob) => img.src = URL.createObjectURL(convertedBlob))
+      .catch((error) => {
+        console.error('Failed to convert HEIC:', error);
+        alert('Failed to process HEIC file. Please try a different file format.');
+      });
+  }
 
-  dbRequest.onupgradeneeded = (event) => {
-    db = event.target.result;
-    // ObjectStoreを作成
-    if (!db.objectStoreNames.contains('images')) {
-      db.createObjectStore('images', { keyPath: 'name' });
-    }
-  };
+  // 計算前の画像を描画する処理
+  function processImage(img) {
+    const tempCanvas = document.createElement('canvas');
+    const ctx = tempCanvas.getContext('2d');
+    tempCanvas.width = img.width;
+    tempCanvas.height = img.height;
+    ctx.drawImage(img, 0, 0);
+    src = cv.imread(tempCanvas);
 
-  dbRequest.onsuccess = (event) => {
-    db = event.target.result;
-  };
+    window.imgLab = new cv.Mat();
+    cv.cvtColor(src, window.imgLab, cv.COLOR_BGR2Lab);
+    window.lightnessMask = applyLightnessMask(window.imgLab, 10, 255);
+    drawMaskedImage('canvasAdjusted', window.lightnessMask, src);
+    startButton.disabled = false; // Startボタンを有効化
+  }
 
-  // Startボタンが押された時の処理
-  startButton.addEventListener('click', () => {
+  // Startボタンを押した時の処理
+  async function handleStartButtonClick() {
     if (!src || !window.imgLab || !window.lightnessMask) {
       alert('No image data available');
       return;
     }
 
-    // ローディング画面を表示
+    // 処理中にローディングページを表示
     const loadingPage = document.getElementById('loading_page');
     loadingPage.classList.add('loadeding');
+    // 画像処理の非同期化
+    await new Promise(resolve => setTimeout(resolve, 0));
+    await performImageProcessing();
 
-    // ローディング画面を表示を優先するための非同期処理
-    setTimeout(() => {
-      // 必要なデータを再利用
-      const imgLab = window.imgLab;
-      const lightnessMask = window.lightnessMask;
-
-      // 各マスクの閾値を定義
-      const ripeLower = new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [0, 155, 0, 0]);
-      const ripeUpper = new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [255, 255, 255, 0]);
-
-      const unripeGreenLower = new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [0, 0, 0, 0]);
-      const unripeGreenUpper = new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [255, 110, 255, 0]);
-
-      const unripeYellowLower = new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [0, 110, 0, 0]);
-      const unripeYellowUpper = new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [255, 155, 100, 0]);
-
-      const overripeLower = new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [0, 110, 100, 0]);
-      const overripeUpper = new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [255, 155, 255, 0]);
-
-      // 各マスクを適用
-      window.ripeMask = applyMask(imgLab, ripeLower, ripeUpper, lightnessMask);
-      window.unripeGreenMask = applyMask(imgLab, unripeGreenLower, unripeGreenUpper, lightnessMask);
-      window.unripeYellowMask = applyMask(imgLab, unripeYellowLower, unripeYellowUpper, lightnessMask);
-      window.overripeMask = applyMask(imgLab, overripeLower, overripeUpper, lightnessMask);
-
-      // Unripeマスクを統合
-      const unripeMask = new cv.Mat();
-      cv.bitwise_or(unripeGreenMask, unripeYellowMask, unripeMask);
-      window.unripeMask = unripeMask;
-
-      // ピクセルのカウント
-      const ripePixels = cv.countNonZero(ripeMask);
-      const unripePixels = cv.countNonZero(unripeMask);
-      const overripePixels = cv.countNonZero(overripeMask);
-      const totalMaskedPixels = ripePixels + unripePixels + overripePixels;
-
-      // 割合の計算
-      const ripeRatio = Math.round((ripePixels / totalMaskedPixels) * 100);
-      const unripeRatio = Math.round((unripePixels / totalMaskedPixels) * 100);
-      const overripeRatio = Math.round((overripePixels / totalMaskedPixels) * 100);
-
-      // Session Storageに割合データを保持
-      sessionStorage.setItem('ripeRatio', ripeRatio);
-      sessionStorage.setItem('unripeRatio', unripeRatio);
-      sessionStorage.setItem('overripeRatio', overripeRatio);
-
-      // IndexedDBから既存のデータを削除して一度空にする処理
-      const transaction = db.transaction(['images'], 'readwrite');
-      const objectStore = transaction.objectStore('images');
-      objectStore.delete('ripeWebPData');
-      objectStore.delete('unripeWebPData');
-      objectStore.delete('overripeWebPData');
-
-      // マスクを適用して画像生成
-      const ripeImageData = applyMaskAndSave(window.ripeMask, src);
-      const unripeImageData = applyMaskAndSave(window.unripeMask, src);
-      const overripeImageData = applyMaskAndSave(window.overripeMask, src);
-
-      // WebP形式に圧縮して保存する処理
-      const saveToDatabasePromises = [
-        compressToWebP(ripeImageData).then((ripeWebPBlob) => {
-          return saveToIndexedDB('ripeWebPData', ripeWebPBlob);
-        }).catch((error) => {
-          console.error('Failed to compress ripe image to WebP:', error);
-        }),
-
-        compressToWebP(unripeImageData).then((unripeWebPBlob) => {
-          return saveToIndexedDB('unripeWebPData', unripeWebPBlob);
-        }).catch((error) => {
-          console.error('Failed to compress unripe image to WebP:', error);
-        }),
-
-        compressToWebP(overripeImageData).then((overripeWebPBlob) => {
-          return saveToIndexedDB('overripeWebPData', overripeWebPBlob);
-        }).catch((error) => {
-          console.error('Failed to compress overripe image to WebP:', error);
-        })
-      ];
-
-      // すべての保存処理が完了したらページ遷移
-      Promise.all(saveToDatabasePromises).then(() => {
-        // すべての保存が完了したら遷移
-        window.location.href = 'result.html';
-      }).catch((error) => {
-        console.error('An error occurred while saving data:', error);
-      });
-
-      // メモリ解放
-      releaseResources([
-        ripeLower, ripeUpper, unripeGreenLower, unripeGreenUpper,
-        unripeYellowLower, unripeYellowUpper, overripeLower, overripeUpper,
-        lightnessMask, imgLab
-      ]);
-    }, 0); //0ミリ秒でも非同期化される
-  });
-  
-
-  function applyMaskAndSave(mask, originalImage) {
-    // 元の画像を複製
-    const maskedImage = originalImage.clone();
-  
-    // マスクを適用して該当部分以外を白塗り
-    for (let y = 0; y < maskedImage.rows; y++) {
-      for (let x = 0; x < maskedImage.cols; x++) {
-        if (mask.ucharAt(y, x) === 0) {
-          // 白塗り（RGBすべて255）
-          maskedImage.ucharPtr(y, x).set([255, 255, 255]);
-        }
-      }
-    }
-  
-    // 画像を`ImageData`形式に変換
-    const canvas = document.createElement('canvas');
-    canvas.width = maskedImage.cols;
-    canvas.height = maskedImage.rows;
-    cv.imshow(canvas, maskedImage);
-    const imageData = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
-  
-    // メモリ解放
-    maskedImage.delete();
-  
-    return imageData;
+    loadingPage.classList.remove('loadeding');
+    canvasArea.style.display = "none"; // 計算前の画像を非表示
+    resultArea.style.display = "block"; // 結果の表示
+    startButton.disabled = true; // Startボタンを無効化
   }
 
-  // webpに変換する関数
-  function compressToWebP(imageData) {
-    // 画像データをCanvasに描画
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
+  async function performImageProcessing() {
+    const masks = calculateMasks();
+    const ratios = calculateRatios(masks);
+    updateResults(ratios);
+    renderChart(ratios);
+    drawAllMasks(masks);
+    releaseResources(Object.values(masks));
+  }
 
-    // 解像度を保持
-    canvas.width = imageData.width;
-    canvas.height = imageData.height;
-    ctx.putImageData(imageData, 0, 0);
+  function calculateMasks() {
+    const thresholds = getThresholds(window.imgLab);
+    const masks = createMasks(thresholds);
+    combineMasks(masks);
+    return masks;
+  }
 
-    // Blobとして取得
-    return new Promise((resolve, reject) => {
-        canvas.toBlob((blob) => {
-            if (blob) {
-                resolve(blob); // Blob形式で返す
-            } else {
-                reject(new Error('Failed to convert to WebP Blob.'));
-            }
-        }, 'image/webp', 1.0); // 1.0は最高品質
+  function createMasks(thresholds) {
+    return {
+      ripeMask: applyMask(thresholds.ripeLower, thresholds.ripeUpper),
+      unripeGreenMask: applyMask(thresholds.unripeGreenLower, thresholds.unripeGreenUpper),
+      unripeYellowMask: applyMask(thresholds.unripeYellowLower, thresholds.unripeYellowUpper),
+      overripeMask: applyMask(thresholds.overripeLower, thresholds.overripeUpper),
+      unripeMask: new cv.Mat() // placeholder for combined unripe mask
+    };
+  }
+
+  function combineMasks(masks) {
+    cv.bitwise_or(masks.unripeGreenMask, masks.unripeYellowMask, masks.unripeMask);
+  }
+
+  // 割合を計算する処理
+  function calculateRatios(masks) {
+    const pixelCounts = {
+      ripe: cv.countNonZero(masks.ripeMask),
+      unripe: cv.countNonZero(masks.unripeMask),
+      overripe: cv.countNonZero(masks.overripeMask),
+    };
+    const total = pixelCounts.ripe + pixelCounts.unripe + pixelCounts.overripe;
+    return {
+      // 割合は少数点以下は切り捨て
+      ripe: Math.floor((pixelCounts.ripe / total) * 100),
+      unripe: Math.floor((pixelCounts.unripe / total) * 100),
+      overripe: Math.floor((pixelCounts.overripe / total) * 100),
+    };
+  }
+
+  // 計算した割合をテーブルに記述する処理
+  function updateResults(ratios) {
+    document.getElementById('ripeRatio').textContent = `${ratios.ripe}%`;
+    document.getElementById('unripeRatio').textContent = `${ratios.unripe}%`;
+    document.getElementById('overripeRatio').textContent = `${ratios.overripe}%`;
+  }
+
+  // Chartの設定
+  function renderChart(ratios) {
+    const ctx = document.getElementById("piechart").getContext("2d");
+    myChart = new Chart(ctx, {
+      type: "doughnut",
+      data: {
+        labels: ['Ripe', 'Unripe', 'Overripe'],
+        datasets: [{
+          data: [ratios.ripe, ratios.unripe, ratios.overripe],
+          backgroundColor: ['#900606', '#F1BE06', '#3A0203'],
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        tooltips: { enabled: false },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'bottom',
+            reverse: true,
+            labels: { font: { size: 14 }, color: '#032962' }
+          }
+        },
+      },
+      plugins: [ // グラフの中央にテキストを表示
+        {
+          id: 'ratio-text',
+          beforeDraw(chart) {
+            const { ctx, chartArea: { top, width, height } } = chart;
+            ctx.save();
+            ctx.font = 'bold 30px Roboto';
+            ctx.fillStyle = '#900606';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            const ripePercentage = parseFloat(ratios.ripe).toFixed(0) + ' %';
+            ctx.fillText(ripePercentage, width / 2, top + (height / 2));
+          }
+        }
+      ]
     });
   }
 
-  // IndexedDBに保存する関数
-  function saveToIndexedDB(name, data) {
-    if (!db) {
-      console.error('IndexedDB is not initialized.');
-      return;
-    }
-
-    const transaction = db.transaction(['images'], 'readwrite');
-    const store = transaction.objectStore('images');
-    const request = store.put({ name: name, data: data });
-
-    request.onsuccess = () => {
-      console.log(`${name} has been saved to IndexedDB.`);
-    };
-
-    request.onerror = (event) => {
-      console.error(`Failed to save ${name} to IndexedDB:`, event.target.error);
-    };
+  function drawAllMasks(masks) {
+    drawMaskedImage('canvasRipe', masks.ripeMask, src);
+    drawMaskedImage('canvasUnripe', masks.unripeMask, src);
+    drawMaskedImage('canvasOverripe', masks.overripeMask, src);
   }
 
-  // 明度を調整する関数
-  function applyLightnessMask(imgLab) {
-    let lowerBoundLightness = new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [10, 0, 0, 0]);
-    let upperBoundLightness = new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [255, 255, 255, 0]);
-    let lightnessMask = new cv.Mat();
-    cv.inRange(imgLab, lowerBoundLightness, upperBoundLightness, lightnessMask);
-    lowerBoundLightness.delete();
-    upperBoundLightness.delete();
-    return lightnessMask;
-  }
-
-  // 熟度に応じたマスク適用する関数
-  function applyMask(imgLab, lowerBound, upperBound, lightnessMask) {
-    let mask = new cv.Mat();
-    cv.inRange(imgLab, lowerBound, upperBound, mask);
-    cv.bitwise_and(mask, lightnessMask, mask);
+  // 明度調整を行うマスクの処理
+  function applyLightnessMask(imgLab, lowerBound = 10, upperBound = 255) { // *LowerBoundは手動で定義
+    const lower = new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [lowerBound, 0, 0, 0]);
+    const upper = new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [upperBound, 255, 255, 0]);
+    const mask = new cv.Mat();
+    cv.inRange(imgLab, lower, upper, mask);
+    lower.delete();
+    upper.delete();
     return mask;
   }
 
-  // マスク当てた画像を描画する関数
+  function applyMask(lower, upper) {
+    const mask = new cv.Mat();
+    cv.inRange(window.imgLab, lower, upper, mask);
+    cv.bitwise_and(mask, window.lightnessMask, mask);
+    return mask;
+  }
+
+  // マスクを重ねた画像を描画する処理
   function drawMaskedImage(canvasId, mask, originalImage) {
     const maskedImage = originalImage.clone();
     for (let y = 0; y < maskedImage.rows; y++) {
@@ -294,16 +232,42 @@ function onReady() {
       }
     }
     const canvas = document.getElementById(canvasId);
-    cv.imshow(canvas, maskedImage);
+    if (canvas) {
+      cv.imshow(canvas, maskedImage);
+    } else {
+      console.warn(`Canvas with id '${canvasId}' not found.`);
+    }
     maskedImage.delete();
   }
 
-  // メモリを解放する関数
+  // Canvasの画像をクリアする処理
+  function clearCanvas(canvasId) {
+    const canvas = document.getElementById(canvasId);
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+
+  // メモリを解放する処理
   function releaseResources(mats) {
     mats.forEach(mat => mat.delete());
   }
+
+  // 各マスクの色の閾値の設定
+  function getThresholds(imgLab) {
+    return {
+      ripeLower: new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [0, 155, 0, 0]),
+      ripeUpper: new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [255, 255, 255, 0]),
+      unripeGreenLower: new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [0, 0, 0, 0]),
+      unripeGreenUpper: new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [255, 110, 255, 0]),
+      unripeYellowLower: new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [0, 110, 0, 0]),
+      unripeYellowUpper: new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [255, 155, 100, 0]),
+      overripeLower: new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [0, 110, 100, 0]),
+      overripeUpper: new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [255, 155, 255, 0]),
+    };
+  }
+
+  // Splideの設定
+  new Splide('.splide', { rewind: true }).mount();
 }
 
-window.addEventListener('load', () => {
-  onReady();
-});
+window.addEventListener('load', onReady);
