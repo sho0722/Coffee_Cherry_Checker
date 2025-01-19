@@ -41,15 +41,17 @@ header {
   background: url(../images/img_bg.png) no-repeat center center/cover;
   background-color: rgba(255, 255, 255, 0.8);
   background-blend-mode: lighten;
-  padding-top: 5em;
+  padding-top: 4em;
   z-index: 0;
 }
 
 .ttl_head {
   font-size: 2em;
   color: var(--color-contrast);
-  text-align: center;
-  padding: .4em 0 .2em;
+  height: 2em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .ttl_cont {
@@ -87,7 +89,7 @@ button:active {
   align-items: center;
   justify-content: center;
   width: 80vw;
-  height: 70vh;
+  height: 65vh;
   max-width: 650px;
   margin: 0 auto;
   border: .2em solid var(--color-border);
@@ -112,7 +114,7 @@ button:active {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5em 5em;
+  padding: 1.5em 5em 0;
 }
 
 #icon_camera {
@@ -147,7 +149,7 @@ button:active {
 }
 
 #canvas_area {
-  opacity: 0;
+  display: none;
 }
 
 /* =========== Loading Page =========== */
@@ -204,6 +206,10 @@ button:active {
 }
 
 /* =========== Result Page =========== */
+#result_area {
+  display: none;
+}
+
 .chart_wrap {
   width: 90vw;
   height: 50vh;
