@@ -49,9 +49,8 @@ header {
   font-size: 2em;
   color: var(--color-contrast);
   height: 2em;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  padding-top: .6em;
+  text-align: center;
 }
 
 .ttl_cont {
