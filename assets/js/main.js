@@ -65,15 +65,20 @@ function onReady() {
       });
   }
 
-  // 計算前の画像を描画する処理
+  // 明度調整後の画像を描画する処理
   function processImage(img) {
     const tempCanvas = document.createElement('canvas');
     const ctx = tempCanvas.getContext('2d');
-    tempCanvas.width = img.width;
-    tempCanvas.height = img.height;
-    ctx.drawImage(img, 0, 0);
-    src = cv.imread(tempCanvas);
 
+    // 画像サイズを半分にリサイズ
+    const resizedWidth = Math.floor(img.width / 2);
+    const resizedHeight = Math.floor(img.height / 2);
+    tempCanvas.width = resizedWidth;
+    tempCanvas.height = resizedHeight;
+
+    // 元の画像をリサイズして描画
+    ctx.drawImage(img, 0, 0, resizedWidth, resizedHeight);
+    src = cv.imread(tempCanvas);
     window.imgLab = new cv.Mat();
     cv.cvtColor(src, window.imgLab, cv.COLOR_BGR2Lab);
     window.lightnessMask = applyLightnessMask(window.imgLab, 10, 255);
