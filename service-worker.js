@@ -1,5 +1,5 @@
-const serviceWorkerVersion = '0.1.0'
-const CACHE_NAME = 'CoffeeCherryChecker-v' + serviceWorkerVersion
+const CACHE_VERSION = '0.1.0'; // Change version number when updating
+const CACHE_NAME = 'CoffeeCherryChecker-v' + CACHE_VERSION;
 const CACHE_ASSETS = [
   '/',
   '/index.html',
@@ -24,7 +24,7 @@ const CACHE_ASSETS = [
 
 // Install service worker
 self.addEventListener('install', function (event) {
-  console.log('[Service Worker] Installing... version: ' + serviceWorkerVersion + ' cacheName:' + CACHE_NAME) 
+  console.log('[Service Worker] Installing new version:', CACHE_VERSION);
   event.waitUntil(
     caches.open(CACHE_NAME).then(async function (cache) {
       console.log('[Service Worker] Caching all: app shell and content');
@@ -61,18 +61,34 @@ self.addEventListener('fetch', function (event) {
 
 // Activate
 self.addEventListener('activate', (event) => {
-  console.log('Activating new service worker...')
-  const cacheAllowlist = [CACHE_NAME]
+  console.log('[Service Worker] Activating new service worker...');
 
   event.waitUntil(
     caches.keys().then((keyList) => {
-      return Promise.all(keyList.map((key) => {
-        if (cacheAllowlist.indexOf(key) === -1) {
-          console.log('[Service Worker] deleting old cache: ' + CACHE_NAME)
-          return caches.delete(key)
-        }
-      }))
+      return Promise.all(
+        keyList.map((key) => {
+          if (key !== CACHE_NAME) {
+            console.log('[Service Worker] Deleting old cache:', key);
+            return caches.delete(key);
+          }
+        })
+      );
+    }).then(() => {
+      return self.clients.claim(); // すぐに新しいバージョンを適用
     })
-  )
-  console.log('done.')
-})
+  );
+
+  // Send notification
+  event.waitUntil(
+    self.clients.matchAll().then((clients) => {
+        clients.forEach(client => client.postMessage({ type: 'UPDATE_AVAILABLE' }));
+    })
+  );
+});
+
+// Receive message from client
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.action === 'skipWaiting') {
+      self.skipWaiting();
+  }
+});
