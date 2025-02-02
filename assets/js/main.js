@@ -1,11 +1,40 @@
 // ************* Service worker *************
-navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
-  .then((registration) => {
-      console.log('Service Worker registered with scope:', registration.scope);
-  })
-  .catch((error) => {
-      console.log('Service Worker registration failed:', error);
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/service-worker.js').then(reg => {
+    reg.onupdatefound = () => {
+      const installingWorker = reg.installing;
+      installingWorker.onstatechange = () => {
+        if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          showUpdateNotification();
+        }
+      };
+    };
   });
+
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'UPDATE_AVAILABLE') {
+      showUpdateNotification();
+    }
+  });
+}
+
+function showUpdateNotification() {
+  const updateBanner = document.createElement('div');
+  updateBanner.innerHTML = `
+    <div class="notification_container">
+      <p class="notification_message">A new version is available!!</p>
+      <button onclick="updateApp()">Update</button>
+    </div>
+  `;
+  document.body.appendChild(updateBanner);
+}
+
+function updateApp() {
+  if (navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage({ action: 'skipWaiting' });
+  }
+  window.location.reload();
+}
 
 // ************* Main function *************
 function onReady() {
