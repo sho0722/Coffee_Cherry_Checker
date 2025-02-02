@@ -2,7 +2,16 @@
   "name": "Coffee Cherry Chcker",
   "short_name": "CC-Cheker",
   "description": "Coffee Cherry Checker enables you to easily and instantly assess coffee cherry ripeness from a photo you take!",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "theme_color": "#032962",
+  "background_color": "#900606",
   "icons": [
+    {
+      "src": "/assets/icons/app_icon_96x96.png",
+      "type": "image/png",
+      "sizes": "96x96"
+    },
     {
       "src": "/assets/icons/app_icon_192x192.png",
       "type": "image/png",
@@ -13,9 +22,5 @@
       "type": "image/png",
       "sizes": "512x512"
     }
-  ],
-  "start_url": "/index.html",
-  "display": "standalone",
-  "theme_color": "#032962",
-  "background_color": "#900606"
+  ]
 }
