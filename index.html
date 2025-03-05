@@ -31,7 +31,7 @@
 	<header>
 		<h1 class="ttl_head">Coffee Cherry Checker</h1>
 	</header>
-	
+
 	<main class="main">
 		<div class="button_area">
 			<input type="file" accept=”image/*” id="inputImage">
@@ -40,11 +40,11 @@
 			</div>
 			<button id="startButton" disabled>Start</button>
 		</div>
-    
+
 		<div id="canvas_area">
 			<h2 class="ttl_cont">Input Photo</h2>
 			<div class="canvas_wrap">
-				<canvas id="canvasAdjusted"></canvas>
+				<canvas id="canvasOriginal"></canvas>
 			</div>
 		</div>
 
@@ -74,25 +74,32 @@
 								</tbody>
 							</table>
 						</li>
-	
+
 						<li class="splide__slide">
 							<p class="ttl_ripeness ttl_ripe">Ripe</p>
 							<div class="canvas_wrap">
 								<canvas id="canvasRipe"></canvas>
 							</div>
 						</li>
-	
+
 						<li class="splide__slide">
 							<p class="ttl_ripeness ttl_unripe">Unripe</p>
 							<div class="canvas_wrap">
 								<canvas id="canvasUnripe"></canvas>
 							</div>
 						</li>
-						
+
 						<li class="splide__slide">
 							<p class="ttl_ripeness ttl_overripe">Overripe</p>
 							<div class="canvas_wrap">
 								<canvas id="canvasOverripe"></canvas>
+							</div>
+						</li>
+
+						<li class="splide__slide">
+							<p class="ttl_ripeness ttl_all">ALL</p>
+							<div class="canvas_wrap">
+								<canvas id="canvasAll"></canvas>
 							</div>
 						</li>
 					</ul>
