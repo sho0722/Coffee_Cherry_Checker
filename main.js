@@ -62,7 +62,7 @@ function onReady() {
   }
 
   function clearAllCanvas() {
-    ['canvasOriginal', 'canvasRipe', 'canvasUnripe', 'canvasOverripe', 'canvasAll'].forEach(clearCanvas);
+    ['canvasRipe', 'canvasUnripe', 'canvasOverripe', 'canvasAll'].forEach(clearCanvas);
   }
 
   function destroyPreviousChart() {
