@@ -266,6 +266,9 @@ button:active {
 .ttl_ripeness.ttl_overripe {
   background-color: var(--color-overripe);
 }
+.ttl_ripeness.ttl_all {
+  background-color: #05749a;
+}
 
 .btn_top {
   display: block;
