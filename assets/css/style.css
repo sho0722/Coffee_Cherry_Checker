@@ -281,6 +281,7 @@ button:active {
 }
 
 .splide__pagination {
+  display: flex !important;
   bottom: -2em;
 }
 
