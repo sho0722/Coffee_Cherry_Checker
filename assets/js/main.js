@@ -114,7 +114,7 @@
       tempCanvas.width = resizedWidth;
       tempCanvas.height = resizedHeight;
 
-      // オリジナル画像をリサイズして描画
+      // リサイズして描画
       ctx.drawImage(img, 0, 0, resizedWidth, resizedHeight);
       const originalCanvas = document.getElementById('canvasOriginal');
       const originalCtx = originalCanvas.getContext('2d');
@@ -122,12 +122,14 @@
       originalCanvas.height = resizedHeight;
       originalCtx.drawImage(tempCanvas, 0, 0);
 
-      // 廃液を除去したマスクを適用した画像を準備
+      // 影と背景を除去したマスクを準備
       src = cv.imread(tempCanvas);
       window.imgLab = new cv.Mat();
       cv.cvtColor(src, window.imgLab, cv.COLOR_BGR2Lab);
       window.adjustedMask = applyAdjustedMask(window.imgLab);
-      startButton.disabled = false; // Startボタンを有効化
+
+      // Startボタンを有効化
+      startButton.disabled = false;
     }
 
     // Startボタンを押した時の処理
@@ -257,14 +259,14 @@
     function applyAdjustedMask(imgLab) {
 
       // 明るさ（L*）の範囲指定
-      const lowerL = new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [5, 0, 0, 0]); // *LowerBoundは手動で定義
+      const lowerL = new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [50, 0, 0, 0]); // *LowerBoundは手動で定義
       const upperL = new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [255, 255, 255, 0]);
 
       // L* に基づくマスク作成（影の除去）
       const lightnessMask = new cv.Mat();
       cv.inRange(imgLab, lowerL, upperL, lightnessMask);
 
-      // 白背景の範囲を指定（a*、b* ともに中央値から±10）
+      // 取り除く白背景の範囲を指定（a*、b* ともに中央値から±10）
       const LowerW = new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [0, 118, 118, 0]);
       const UpperW = new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [255, 138, 138, 0]);
 
@@ -276,20 +278,14 @@
       const nonWhiteMask = new cv.Mat();
       cv.bitwise_not(whiteMask, nonWhiteMask);
 
-      // 明度調整用マスクと背景調整用マスクを統合（影＋白背景を削除）
+      // 明度調整用マスクと背景削除用マスクを統合
       const adjustedMask = new cv.Mat();
       cv.bitwise_and(lightnessMask, nonWhiteMask, adjustedMask);
 
-      // 不要なMatを解放
-      lowerL.delete();
-      upperL.delete();
-      LowerW.delete();
-      UpperW.delete();
-      lightnessMask.delete();
-      whiteMask.delete();
-      nonWhiteMask.delete();
+      // 不要なリソースを解放
+      releaseResources([lowerL, upperL, LowerW, UpperW, lightnessMask, whiteMask, nonWhiteMask]);
 
-      // 影＋白部分が除去されたマスク
+      // 影＋白背景が除去されたマスク
       return adjustedMask;
     }
 
@@ -345,14 +341,14 @@
 
       // *********** 熟度に応じた閾値を定義 ***********
       return {
-        ripeLower: convertPixel([0, 23, -128]),
+        ripeLower: convertPixel([0, 15, -128]),
         ripeUpper: convertPixel([100, 127, 0]),
         unripeGreenLower: convertPixel([0, -128, 0]),
         unripeGreenUpper: convertPixel([100, -18, 127]),
         unripeYellowLower: convertPixel([0, -18, -128]),
-        unripeYellowUpper: convertPixel([100, 23, -25]),
-        overripeLower: convertPixel([0, -18, -25]),
-        overripeUpper: convertPixel([100, 23, 127]),
+        unripeYellowUpper: convertPixel([100, 15, -30]),
+        overripeLower: convertPixel([0, -18, -30]),
+        overripeUpper: convertPixel([100, 15, -10]),
       };
       // ******************************************
     }
@@ -372,7 +368,7 @@
     }
 
     // Splideの設定
-    new Splide('.splide', { rewind: true }).mount();
+    new Splide('.splide', { rewind: true, pagination: true }).mount();
   }
 
   window.addEventListener('load', onReady);
