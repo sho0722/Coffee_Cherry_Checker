@@ -259,16 +259,16 @@
     function applyAdjustedMask(imgLab) {
 
       // 明るさ（L*）の範囲指定
-      const lowerL = new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [50, 0, 0, 0]); // *LowerBoundは手動で定義
+      const lowerL = new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [20, 0, 0, 0]); // *LowerBoundは手動で定義
       const upperL = new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [255, 255, 255, 0]);
 
       // L* に基づくマスク作成（影の除去）
       const lightnessMask = new cv.Mat();
       cv.inRange(imgLab, lowerL, upperL, lightnessMask);
 
-      // 取り除く白背景の範囲を指定（a*、b* ともに中央値から±10）
-      const LowerW = new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [0, 118, 118, 0]);
-      const UpperW = new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [255, 138, 138, 0]);
+      // 取り除く白背景の範囲を指定（中央値は128）
+      const LowerW = new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [0, 120, 120, 0]); //中央値から-8
+      const UpperW = new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [255, 145, 145, 0]); // 中央値から+17
 
       // 白色領域のマスク作成
       const whiteMask = new cv.Mat();
@@ -341,14 +341,14 @@
 
       // *********** 熟度に応じた閾値を定義 ***********
       return {
-        ripeLower: convertPixel([0, 15, -128]),
+        ripeLower: convertPixel([0, 18, -128]),
         ripeUpper: convertPixel([100, 127, 0]),
         unripeGreenLower: convertPixel([0, -128, 0]),
         unripeGreenUpper: convertPixel([100, -18, 127]),
         unripeYellowLower: convertPixel([0, -18, -128]),
-        unripeYellowUpper: convertPixel([100, 15, -30]),
-        overripeLower: convertPixel([0, -18, -30]),
-        overripeUpper: convertPixel([100, 15, -10]),
+        unripeYellowUpper: convertPixel([100, 18, -23]),
+        overripeLower: convertPixel([0, -18, -23]),
+        overripeUpper: convertPixel([100, 18, -10]),
       };
       // ******************************************
     }
