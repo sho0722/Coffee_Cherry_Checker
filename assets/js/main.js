@@ -341,14 +341,14 @@
 
       // *********** 熟度に応じた閾値を定義 ***********
       return {
-        ripeLower: convertPixel([0, 18, -128]),
+        ripeLower: convertPixel([0, 24, -128]),
         ripeUpper: convertPixel([100, 127, 0]),
         unripeGreenLower: convertPixel([0, -128, 0]),
         unripeGreenUpper: convertPixel([100, -18, 127]),
         unripeYellowLower: convertPixel([0, -18, -128]),
-        unripeYellowUpper: convertPixel([100, 18, -23]),
-        overripeLower: convertPixel([0, -18, -23]),
-        overripeUpper: convertPixel([100, 18, -10]),
+        unripeYellowUpper: convertPixel([100, 24, -22]),
+        overripeLower: convertPixel([0, -18, -22]),
+        overripeUpper: convertPixel([100, 24, -10]),
       };
       // ******************************************
     }
