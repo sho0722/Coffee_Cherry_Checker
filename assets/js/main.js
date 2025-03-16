@@ -180,7 +180,6 @@
     }
 
     function combineMasks(masks) {
-      // cv.bitwise_or(masks.unripeGreenMask, masks.unripeYellowMask, masks.unripeMask);
       let tempMask = new cv.Mat();
 
       // unripeGreenMask と unripeYellowMask を結合
@@ -201,10 +200,10 @@
       };
       const total = pixelCounts.ripe + pixelCounts.unripe + pixelCounts.overripe;
       return {
-        // 割合は少数点以下は切り捨て
-        ripe: Math.floor((pixelCounts.ripe / total) * 100),
-        unripe: Math.floor((pixelCounts.unripe / total) * 100),
-        overripe: Math.floor((pixelCounts.overripe / total) * 100),
+        // 割合は少数点以下、四捨五入
+        ripe: Math.round((pixelCounts.ripe / total) * 100),
+        unripe: Math.round((pixelCounts.unripe / total) * 100),
+        overripe: Math.round((pixelCounts.overripe / total) * 100),
       };
     }
 
@@ -358,8 +357,8 @@
         unripeYellowLower: convertPixel([0, -12, 10]),
         unripeYellowUpper: convertPixel([100, 26, 20]),
         unripeOrangeLower: convertPixel([0, -18, -128]),
-        unripeOrangeUpper: convertPixel([100, 26, -10]),
-        overripeLower: convertPixel([0, -12, -10]),
+        unripeOrangeUpper: convertPixel([100, 26, -11]),
+        overripeLower: convertPixel([0, -12, -11]),
         overripeUpper: convertPixel([100, 26, 10]),
       };
       // ******************************************
