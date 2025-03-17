@@ -170,25 +170,32 @@
 
     function createMasks(thresholds) {
       return {
-        ripeMask: applyMask(thresholds.ripeLower, thresholds.ripeUpper),
+        ripeRedMask: applyMask(thresholds.ripeRedLower, thresholds.ripeRedUpper),
+        ripeDarkMask: applyMask(thresholds.ripeDarkLower, thresholds.ripeDarkUpper),
+        ripeLightMask: applyMask(thresholds.ripeLightLower, thresholds.ripeLightUpper),
         unripeGreenMask: applyMask(thresholds.unripeGreenLower, thresholds.unripeGreenUpper),
         unripeYellowMask: applyMask(thresholds.unripeYellowLower, thresholds.unripeYellowUpper),
         unripeOrangeMask: applyMask(thresholds.unripeOrangeLower, thresholds.unripeOrangeUpper),
         overripeMask: applyMask(thresholds.overripeLower, thresholds.overripeUpper),
+        ripeMask: new cv.Mat(), // placeholder for combined ripe mask
         unripeMask: new cv.Mat() // placeholder for combined unripe mask
       };
     }
 
     function combineMasks(masks) {
-      let tempMask = new cv.Mat();
+      // ripeDarkMask と ripeLightMask を結合
+      let tempRipeMask = new cv.Mat();
+      cv.bitwise_or(masks.ripeDarkMask, masks.ripeLightMask, tempRipeMask);
+      // さらに ripeMask を結合
+      cv.bitwise_or(tempRipeMask, masks.ripeRedMask, masks.ripeMask);
 
       // unripeGreenMask と unripeYellowMask を結合
-      cv.bitwise_or(masks.unripeGreenMask, masks.unripeYellowMask, tempMask);
-
+      let tempUnripeMask = new cv.Mat();
+      cv.bitwise_or(masks.unripeGreenMask, masks.unripeYellowMask, tempUnripeMask);
       // さらに unripeOrangeMask を結合
-      cv.bitwise_or(tempMask, masks.unripeOrangeMask, masks.unripeMask);
+      cv.bitwise_or(tempUnripeMask, masks.unripeOrangeMask, masks.unripeMask);
 
-      tempMask.delete();
+      releaseResources([tempRipeMask, tempUnripeMask]);
     }
 
     // 割合を計算する処理
@@ -200,7 +207,7 @@
       };
       const total = pixelCounts.ripe + pixelCounts.unripe + pixelCounts.overripe;
       return {
-        // 割合は少数点以下、四捨五入
+        // 割合は少数点以下は切り捨て
         ripe: Math.round((pixelCounts.ripe / total) * 100),
         unripe: Math.round((pixelCounts.unripe / total) * 100),
         overripe: Math.round((pixelCounts.overripe / total) * 100),
@@ -268,7 +275,7 @@
     function applyAdjustedMask(imgLab) {
 
       // 明るさ（L*）の範囲指定
-      const lowerL = new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [20, 0, 0, 0]); // *LowerBoundは手動で定義
+      const lowerL = new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [40, 0, 0, 0]); // *LowerBoundは手動で定義
       const upperL = new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [255, 255, 255, 0]);
 
       // L* に基づくマスク作成（影の除去）
@@ -276,7 +283,7 @@
       cv.inRange(imgLab, lowerL, upperL, lightnessMask);
 
       // 取り除く白背景の範囲を指定（中央値は128）
-      const LowerW = new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [0, 120, 120, 0]); //中央値から-8
+      const LowerW = new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [0, 116, 116, 0]); //中央値から-12
       const UpperW = new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [255, 145, 145, 0]); // 中央値から+17
 
       // 白色領域のマスク作成
@@ -333,7 +340,11 @@
 
     // メモリを解放する処理
     function releaseResources(mats) {
-      mats.forEach(mat => mat.delete());
+      mats.forEach(mat => {
+        if (mat instanceof cv.Mat) {
+          mat.delete();
+        }
+      });
     }
 
     // 各マスクの色の閾値の設定
@@ -350,25 +361,35 @@
 
       // *********** 熟度に応じた閾値を定義 ***********
       return {
-        ripeLower: convertPixel([0, 26, -128]),
-        ripeUpper: convertPixel([100, 127, 0]),
         unripeGreenLower: convertPixel([0, -128, 0]),
         unripeGreenUpper: convertPixel([100, -12, 127]),
-        unripeYellowLower: convertPixel([0, -12, 10]),
-        unripeYellowUpper: convertPixel([100, 26, 20]),
-        unripeOrangeLower: convertPixel([0, -18, -128]),
-        unripeOrangeUpper: convertPixel([100, 26, -11]),
-        overripeLower: convertPixel([0, -12, -11]),
-        overripeUpper: convertPixel([100, 26, 10]),
+        unripeYellowLower: convertPixel([0, -12, 12]),
+        unripeYellowUpper: convertPixel([100, 26, 127]),
+        unripeOrangeLower: convertPixel([15, -18, -128]),
+        unripeOrangeUpper: convertPixel([85, 26, -12]),
+
+        overripeLower: convertPixel([0, -12, -12]),
+        overripeUpper: convertPixel([100, 26, 12]),
+
+        ripeDarkLower: convertPixel([0, -18, -128]),
+        ripeDarkUpper: convertPixel([15, 26, -12]),
+        ripeLightLower: convertPixel([85, -18, -128]),
+        ripeLightUpper: convertPixel([100, 26, -12]),
+        ripeRedLower: convertPixel([0, 26, -128]),
+        ripeRedUpper: convertPixel([100, 127, 0]),
       };
       // ******************************************
     }
 
     function getThresholds(imgLab) {
       const normalizedThresholds = convertToOpenCVLab();
-      return {
-        ripeLower: new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [...normalizedThresholds.ripeLower, 0]),
-        ripeUpper: new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [...normalizedThresholds.ripeUpper, 0]),
+      const thresholds = {
+        ripeRedLower: new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [...normalizedThresholds.ripeRedLower, 0]),
+        ripeRedUpper: new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [...normalizedThresholds.ripeRedUpper, 0]),
+        ripeDarkLower: new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [...normalizedThresholds.ripeDarkLower, 0]),
+        ripeDarkUpper: new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [...normalizedThresholds.ripeDarkUpper, 0]),
+        ripeLightLower: new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [...normalizedThresholds.ripeLightLower, 0]),
+        ripeLightUpper: new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [...normalizedThresholds.ripeLightUpper, 0]),
         unripeGreenLower: new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [...normalizedThresholds.unripeGreenLower, 0]),
         unripeGreenUpper: new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [...normalizedThresholds.unripeGreenUpper, 0]),
         unripeYellowLower: new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [...normalizedThresholds.unripeYellowLower, 0]),
@@ -378,6 +399,9 @@
         overripeLower: new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [...normalizedThresholds.overripeLower, 0]),
         overripeUpper: new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [...normalizedThresholds.overripeUpper, 0]),
       };
+      releaseResources(Object.values(normalizedThresholds));
+
+      return thresholds;
     }
 
     // Splideの設定
