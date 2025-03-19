@@ -1,4 +1,4 @@
-const CACHE_VERSION = '0.1.7'; // Change version number when updating
+const CACHE_VERSION = '0.1.8'; // Change version number when updating
 const CACHE_NAME = 'CoffeeCherryChecker-v' + CACHE_VERSION;
 const CACHE_ASSETS = [
   '/',
