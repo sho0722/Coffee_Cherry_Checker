@@ -170,7 +170,6 @@
 
     function createMasks(thresholds) {
       return {
-        ripeRedMask: applyMask(thresholds.ripeRedLower, thresholds.ripeRedUpper),
         ripeDarkMask: applyMask(thresholds.ripeDarkLower, thresholds.ripeDarkUpper),
         ripeLightMask: applyMask(thresholds.ripeLightLower, thresholds.ripeLightUpper),
         unripeGreenMask: applyMask(thresholds.unripeGreenLower, thresholds.unripeGreenUpper),
@@ -184,10 +183,7 @@
 
     function combineMasks(masks) {
       // ripeDarkMask と ripeLightMask を結合
-      let tempRipeMask = new cv.Mat();
-      cv.bitwise_or(masks.ripeDarkMask, masks.ripeLightMask, tempRipeMask);
-      // さらに ripeMask を結合
-      cv.bitwise_or(tempRipeMask, masks.ripeRedMask, masks.ripeMask);
+      cv.bitwise_or(masks.ripeDarkMask, masks.ripeLightMask, masks.ripeMask);
 
       // unripeGreenMask と unripeYellowMask を結合
       let tempUnripeMask = new cv.Mat();
@@ -195,7 +191,7 @@
       // さらに unripeOrangeMask を結合
       cv.bitwise_or(tempUnripeMask, masks.unripeOrangeMask, masks.unripeMask);
 
-      releaseResources([tempRipeMask, tempUnripeMask]);
+      releaseResources([tempUnripeMask]);
     }
 
     // 割合を計算する処理
@@ -362,21 +358,19 @@
       // *********** 熟度に応じた閾値を定義 ***********
       return {
         unripeGreenLower: convertPixel([0, -128, 0]),
-        unripeGreenUpper: convertPixel([100, -12, 127]),
-        unripeYellowLower: convertPixel([0, -12, 12]),
-        unripeYellowUpper: convertPixel([100, 26, 127]),
-        unripeOrangeLower: convertPixel([15, -18, -128]),
-        unripeOrangeUpper: convertPixel([85, 26, -12]),
+        unripeGreenUpper: convertPixel([100, 0, 127]),
+        unripeYellowLower: convertPixel([0, -18, -50]),
+        unripeYellowUpper: convertPixel([70, 28, -14]),
+        unripeOrangeLower: convertPixel([0, -18, -128]),
+        unripeOrangeUpper: convertPixel([100, 28, -50]),
 
-        overripeLower: convertPixel([0, -12, -12]),
-        overripeUpper: convertPixel([100, 26, 12]),
+        overripeLower: convertPixel([0, -12, -14]),
+        overripeUpper: convertPixel([100, 28, 0]),
 
-        ripeDarkLower: convertPixel([0, -18, -128]),
-        ripeDarkUpper: convertPixel([15, 26, -12]),
-        ripeLightLower: convertPixel([85, -18, -128]),
-        ripeLightUpper: convertPixel([100, 26, -12]),
-        ripeRedLower: convertPixel([0, 26, -128]),
-        ripeRedUpper: convertPixel([100, 127, 0]),
+        ripeLightLower: convertPixel([70, -18, -50]),
+        ripeLightUpper: convertPixel([100, 28, -14]),
+        ripeDarkLower: convertPixel([0, 28, -128]),
+        ripeDarkUpper: convertPixel([100, 127, 0]),
       };
       // ******************************************
     }
@@ -384,8 +378,6 @@
     function getThresholds(imgLab) {
       const normalizedThresholds = convertToOpenCVLab();
       const thresholds = {
-        ripeRedLower: new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [...normalizedThresholds.ripeRedLower, 0]),
-        ripeRedUpper: new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [...normalizedThresholds.ripeRedUpper, 0]),
         ripeDarkLower: new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [...normalizedThresholds.ripeDarkLower, 0]),
         ripeDarkUpper: new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [...normalizedThresholds.ripeDarkUpper, 0]),
         ripeLightLower: new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [...normalizedThresholds.ripeLightLower, 0]),
