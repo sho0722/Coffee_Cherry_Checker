@@ -174,7 +174,6 @@
         ripeLightMask: applyMask(thresholds.ripeLightLower, thresholds.ripeLightUpper),
         unripeGreenMask: applyMask(thresholds.unripeGreenLower, thresholds.unripeGreenUpper),
         unripeYellowMask: applyMask(thresholds.unripeYellowLower, thresholds.unripeYellowUpper),
-        unripeOrangeMask: applyMask(thresholds.unripeOrangeLower, thresholds.unripeOrangeUpper),
         overripeMask: applyMask(thresholds.overripeLower, thresholds.overripeUpper),
         ripeMask: new cv.Mat(), // placeholder for combined ripe mask
         unripeMask: new cv.Mat() // placeholder for combined unripe mask
@@ -186,12 +185,7 @@
       cv.bitwise_or(masks.ripeDarkMask, masks.ripeLightMask, masks.ripeMask);
 
       // unripeGreenMask と unripeYellowMask を結合
-      let tempUnripeMask = new cv.Mat();
-      cv.bitwise_or(masks.unripeGreenMask, masks.unripeYellowMask, tempUnripeMask);
-      // さらに unripeOrangeMask を結合
-      cv.bitwise_or(tempUnripeMask, masks.unripeOrangeMask, masks.unripeMask);
-
-      releaseResources([tempUnripeMask]);
+      cv.bitwise_or(masks.unripeGreenMask, masks.unripeYellowMask, masks.unripeMask);
     }
 
     // 割合を計算する処理
@@ -359,16 +353,14 @@
       return {
         unripeGreenLower: convertPixel([0, -128, 0]),
         unripeGreenUpper: convertPixel([100, 0, 127]),
-        unripeYellowLower: convertPixel([0, -18, -50]),
-        unripeYellowUpper: convertPixel([70, 28, -14]),
-        unripeOrangeLower: convertPixel([0, -18, -128]),
-        unripeOrangeUpper: convertPixel([100, 28, -50]),
+        unripeYellowLower: convertPixel([0, -18, -36]),
+        unripeYellowUpper: convertPixel([100, 28, -14]),
 
         overripeLower: convertPixel([0, -12, -14]),
         overripeUpper: convertPixel([100, 28, 0]),
 
-        ripeLightLower: convertPixel([70, -18, -50]),
-        ripeLightUpper: convertPixel([100, 28, -14]),
+        ripeLightLower: convertPixel([0, -18, -128]),
+        ripeLightUpper: convertPixel([100, 28, -36]),
         ripeDarkLower: convertPixel([0, 28, -128]),
         ripeDarkUpper: convertPixel([100, 127, 0]),
       };
@@ -386,8 +378,6 @@
         unripeGreenUpper: new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [...normalizedThresholds.unripeGreenUpper, 0]),
         unripeYellowLower: new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [...normalizedThresholds.unripeYellowLower, 0]),
         unripeYellowUpper: new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [...normalizedThresholds.unripeYellowUpper, 0]),
-        unripeOrangeLower: new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [...normalizedThresholds.unripeOrangeLower, 0]),
-        unripeOrangeUpper: new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [...normalizedThresholds.unripeOrangeUpper, 0]),
         overripeLower: new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [...normalizedThresholds.overripeLower, 0]),
         overripeUpper: new cv.Mat(imgLab.rows, imgLab.cols, imgLab.type(), [...normalizedThresholds.overripeUpper, 0]),
       };
